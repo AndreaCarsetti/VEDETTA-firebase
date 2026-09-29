@@ -1,0 +1,125 @@
+========================================================================
+ VEDETTA Agent — installazione come applicazione sempre attiva
+ (Windows / macOS / Linux)
+========================================================================
+
+Un unico programma (vedetta-agent.py) che:
+  • monitora la navigazione di TUTTI i browser (Chrome, Edge, Brave,
+    Chromium, Firefox, Safari) — non solo Chrome;
+  • rileva accessi alle piattaforme AI e a domini pubblicità/tracker/malware;
+  • svolge in parallelo il servizio NOC (CPU, RAM, disco, rete, uptime…)
+    alimentando la pagina "Postazioni";
+  • gira come una vera applicazione, con la sua icona (triangolo) nella
+    barra delle applicazioni di Windows in basso a destra (system tray) —
+    niente finestra nera che resta aperta sullo schermo.
+
+------------------------------------------------------------------------
+A) AVVIO RAPIDO — Windows (consigliato: doppio clic sul .bat)
+------------------------------------------------------------------------
+  1. Scarica vedetta-agent.py e vedetta-agent.bat nella STESSA cartella
+  2. Doppio clic su vedetta-agent.bat
+     - installa da solo psutil, pystray e pillow (serve internet la
+       prima volta)
+     - al PRIMO avvio chiede URL console e Agent Key (una finestra di
+       dialogo, oppure il terminale se preferisci lanciarlo da riga di
+       comando) — e, solo se usi la console multi-tenant Firebase,
+       anche la Enroll Key
+     - dalle volte successive parte in silenzio: cerca la sua icona
+       (triangolo verde-teal) vicino all'orologio, in basso a destra.
+       Se non la vedi subito, guarda nella freccetta "icone nascoste"
+       e trascinala fuori per tenerla sempre visibile.
+     - clic destro (o clic) sull'icona per: sincronizzare subito, mettere
+       in pausa, aprire la console web, vedere il log, uscire.
+
+  In caso di problemi, il file vedetta-agent.log (nella stessa cartella)
+  contiene sempre la cronologia di quello che è successo, anche quando
+  non c'è nessuna finestra di console visibile.
+
+------------------------------------------------------------------------
+A-bis) AVVIO DA RIGA DI COMANDO (macOS / Linux / Windows avanzato)
+------------------------------------------------------------------------
+  pip install psutil pystray pillow     (consigliato: metriche NOC + tray)
+
+  python3 vedetta-agent.py \
+      --url https://TUO-PROGETTO.web.app \
+      --agent-key  <AGENT_KEY>
+
+  Chiavi nella console:
+    AGENT_KEY  -> sempre richiesta (scheda "Agenti" -> box "Credenziali")
+    ENROLL_KEY -> SOLO se usi la console multi-tenant (Firebase): nella
+                  console web, scheda "Agenti" -> box "Credenziali".
+                  Se non la imposti, la telemetria NOC usa l'Agent Key
+                  (va bene per la console locale/single-tenant).
+
+------------------------------------------------------------------------
+B) TENERLO SEMPRE ATTIVO (h24, anche dopo riavvio del PC)
+------------------------------------------------------------------------
+L'agente stesso resta acceso finché la finestra/processo è aperto e ripete
+il ciclo ogni 30 secondi. Per farlo ripartire da solo dopo un riavvio o un
+crash:
+
+  Windows (Utilità di pianificazione):
+    1. Apri "Utilità di pianificazione" (Task Scheduler)
+    2. Crea attività -> Trigger: "All'accesso" (o "All'avvio del sistema")
+    3. Azione: avvia programma -> vedetta-agent.bat (percorso completo)
+    4. Impostazioni: spunta "Riavvia se l'attività ha esito negativo",
+       ogni 1 minuto, per un massimo di indefinito
+
+  macOS (LaunchAgent):
+    Crea ~/Library/LaunchAgents/com.vedetta.agent.plist con
+    KeepAlive=true e Program=python3 /percorso/vedetta-agent.py, poi:
+      launchctl load ~/Library/LaunchAgents/com.vedetta.agent.plist
+
+  Linux (systemd, utente o di sistema):
+    Crea un file .service con Restart=always e ExecStart=
+    "python3 /percorso/vedetta-agent.py", poi:
+      systemctl --user enable --now vedetta-agent.service
+
+  In tutti e tre i casi, la parola chiave è "riavvia automaticamente se si
+  ferma" — così l'agente torna su da solo anche dopo un crash o un riavvio
+  del PC, senza bisogno di rilanciarlo a mano.
+
+------------------------------------------------------------------------
+C) CREARE L'ESEGUIBILE INSTALLABILE (app autonoma, senza Python)
+------------------------------------------------------------------------
+Più semplice: scarica ed esegui "vedetta-agent-crea-exe.bat" dalla console
+(pulsante "⚙️ Crea .exe Windows" nella scheda Agenti) — fa tutto da solo
+(installa PyInstaller, compila con --windowed cosi' non appare nessuna
+finestra di console, offre di avviarlo subito).
+
+In alternativa, a mano, sul sistema operativo di destino:
+
+  pip install pyinstaller psutil pystray pillow
+
+  Windows (nessuna finestra di console, solo icona tray):
+    pyinstaller --onefile --windowed --name VedettaAgent vedetta-agent.py
+    -> dist\VedettaAgent.exe
+
+  macOS:
+    pyinstaller --onefile --windowed --name VedettaAgent vedetta-agent.py
+    -> dist/VedettaAgent      (per un vero .app: aggiungi --windowed gia' incluso)
+
+  Linux:
+    pyinstaller --onefile --name vedetta-agent vedetta-agent.py
+    -> dist/vedetta-agent
+
+Il file in dist/ è autonomo e distribuibile. Al primo avvio, se lanciato
+senza console (doppio clic), si apre una piccola finestra di
+configurazione (URL, Agent Key, Enroll Key) al posto del prompt testuale;
+salva tutto in vedetta-agent.config.json accanto a sé.
+
+------------------------------------------------------------------------
+NOTE
+------------------------------------------------------------------------
+• L'agente legge la cronologia dei browser in sola lettura (copia il DB
+  in una cartella temporanea, non modifica nulla).
+• Su macOS, per leggere la cronologia di Safari può servire concedere
+  "Accesso completo al disco" all'app/terminale (Preferenze -> Privacy).
+• L'estensione Chrome classica resta disponibile e continua a funzionare:
+  è indicata quando serve il BLOCCO attivo di adv/tracker nel browser.
+  L'agente è di tipo monitoraggio (tutti i browser) + NOC.
+• Se la finestra si apre e si chiude subito senza messaggi: controlla
+  vedetta-agent.log nella stessa cartella (contiene sempre la cronologia,
+  anche quando non c'è nessuna finestra visibile), oppure lancialo da un
+  Prompt dei comandi (cmd) con "python vedetta-agent.py" per vedere
+  l'errore a video in tempo reale.

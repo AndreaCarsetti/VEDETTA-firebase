@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { width:300px; margin:0; font:12px/1.5 system-ui,sans-serif; }
+  header { background:#101720; color:#eef2f6; padding:10px 14px; font:400 13px/1 'Poppins',ui-monospace,monospace; letter-spacing:2px; display:flex; justify-content:space-between; align-items:center; }
+  header .brand { display:flex; align-items:center; gap:7px; }
+  header .brand img { height:15px; width:auto; display:block; }
+  .body { padding:12px 14px; }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:0; }
+  dt { color:#78909c; } dd { margin:0; font-family:ui-monospace,monospace; }
+  .stato { display:flex; align-items:center; gap:7px; margin-bottom:10px; font-weight:600; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#4fb583; }
+  .dot.ko { background:#e5484d; }
+  .dot.wait { background:#e3a13a; }
+  footer { padding:10px 14px; display:flex; gap:8px; border-top:1px solid #eceff1; }
+  button { flex:1; border:0; border-radius:5px; padding:7px; cursor:pointer; background:#eceff1; font-size:12px; }
+  .sec { margin-top:12px; border-top:1px solid #eceff1; padding-top:10px; }
+  .sec h4 { margin:0 0 6px; font-size:12px; color:#455a64; }
+  .sec .pill { display:inline-block; padding:1px 7px; border-radius:10px; font-weight:600; font-size:11px; }
+  .pill.ok { background:#e3f6f0; color:#2f8a68; } .pill.warn { background:#fdecec; color:#c0392b; }
+  .sec ul { margin:6px 0 0; padding-left:16px; color:#607d8b; }
+  .sec .muted { color:#90a4ae; }
+  #secBtn { width:100%; margin-top:8px; }
+  .adblock-box { margin-top:10px; background:#eafaf3; border:1px solid #b8e8d6; border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between; font-weight:600; color:#2f8a68; }
+  .admin { margin-top:12px; border-top:1px solid #eceff1; padding-top:10px; }
+  .admin h4 { margin:0 0 4px; font-size:12px; color:#455a64; }
+  .admin p { margin:0 0 7px; color:#90a4ae; font-size:11px; }
+  .admin input { width:100%; box-sizing:border-box; border:1px solid #cfd8dc; border-radius:5px; padding:7px 8px; font:600 13px ui-monospace,monospace; letter-spacing:2px; text-transform:uppercase; text-align:center; }
+  .admin .row { display:flex; gap:8px; margin-top:8px; }
+  .admin .row button { flex:1; }
+  #adminDisable { background:#fdecec; color:#c0392b; font-weight:600; }
+  #adminRemove { background:#e5484d; color:#fff; font-weight:600; }
+  #adminMsg { margin-top:7px; font-size:11px; text-align:center; min-height:14px; }
+  #adminMsg.err { color:#c0392b; } #adminMsg.ok { color:#2f8a68; }
+</style></head>
+<body>
+<header><span class="brand"><img src="icons/tesys-mark.png" alt="">VEDETTA · agente</span><span style="font-size:10px;background:#5aba93;color:#0e1420;padding:2px 5px;border-radius:4px;font-family:system-ui">AdBlock ON</span></header>
+<div class="body">
+  <div class="stato"><span class="dot" id="dot"></span><span id="statoTxt">—</span></div>
+  <dl id="info"></dl>
+
+  <div class="adblock-box">
+    <span>🛡️ AdBlock & Anti-Tracker</span>
+    <span style="color:#2f8a68;font-size:11px">ATTIVO</span>
+  </div>
+
+  <div class="sec">
+    <h4>Sicurezza pagina corrente</h4>
+    <div id="secOut" class="muted">Premi "Analizza pagina".</div>
+    <button id="secBtn">Analizza pagina</button>
+  </div>
+
+  <div class="admin">
+    <h4>🔒 Gestione agente</h4>
+    <p>Per disabilitare o rimuovere l'agente inserisci il <strong>Codice Admin</strong> mostrato nella console VEDETTA (tab Agenti Chrome).</p>
+    <input id="adminCode" placeholder="XXXX-XXXX" maxlength="9" autocomplete="off" spellcheck="false">
+    <div class="row">
+      <button id="adminDisable">Disabilita</button>
+      <button id="adminRemove">Elimina plugin</button>
+    </div>
+    <div id="adminMsg"></div>
+  </div>
+</div>
+<footer>
+  <button id="sync">🔄 Aggiorna collegamento</button>
+  <button id="opt">Configurazione</button>
+</footer>
+<script src="popup.js"></script>
+</body>
+</html>

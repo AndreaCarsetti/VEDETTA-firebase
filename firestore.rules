@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // VEDETTA usa Firestore esclusivamente dal backend Firebase Admin SDK.
+    // Il browser e gli agenti passano sempre dalle API della Cloud Function.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

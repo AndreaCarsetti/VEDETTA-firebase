@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "AI Usage Guard & AdBlock — VEDETTA",
+  "version": "2.9.0",
+  "description": "Agente aziendale per il monitoraggio dell'uso delle piattaforme AI e AdBlock / Tracker Blocker integrato. Regole e piattaforme gestite dalla console VEDETTA.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "scripting",
+    "webNavigation",
+    "notifications",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "declarativeNetRequestFeedback"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "adblock_rules",
+        "enabled": true,
+        "path": "rules_adblock.json"
+      }
+    ]
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AI Usage Guard & AdBlock"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "blocked.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

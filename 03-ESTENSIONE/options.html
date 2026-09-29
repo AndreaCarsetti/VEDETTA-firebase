@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>AI Usage Guard — configurazione agente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { font:14px/1.5 system-ui,sans-serif; background:#f4f6f8; margin:0; color:#1a1a1a; }
+  header { background:#101720; color:#eef2f6; padding:14px 24px; font:400 15px/1 'Poppins',ui-monospace,monospace; letter-spacing:3px; display:flex; align-items:center; gap:10px; }
+  header img { height:20px; width:auto; display:block; }
+  header span { color:#8b96a8; font:400 12px/1 system-ui; letter-spacing:0; margin-left:2px; }
+  main { max-width:640px; margin:24px auto; padding:0 16px; }
+  section { background:#fff; border:1px solid #dde3e8; border-radius:8px; padding:18px 20px; margin-bottom:14px; }
+  h2 { font:500 14px/1.3 'Poppins',sans-serif; margin:0 0 12px; color:#101720; }
+  label { display:block; font-size:12px; color:#546e7a; margin:10px 0 4px; }
+  input { width:100%; padding:8px 10px; border:1px solid #cfd6dc; border-radius:6px; font-size:13px; box-sizing:border-box; }
+  button { background:#2f8a68; color:#fff; border:0; border-radius:6px; padding:9px 18px; cursor:pointer; font-size:13px; }
+  button.ghost { background:#546e7a; }
+  .row { display:flex; gap:10px; margin-top:14px; }
+  .status { margin-top:10px; font-size:13px; }
+  .ok { color:#2e7d32; } .err { color:#c62828; }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:6px 16px; font-size:13px; margin:0; }
+  dt { color:#546e7a; } dd { margin:0; font-family:ui-monospace,monospace; }
+  .note { font-size:12px; color:#78909c; }
+</style>
+</head>
+<body>
+<header><img src="icons/tesys-mark.png" alt="">VEDETTA<span>AI Usage Guard — configurazione agente</span></header>
+<main>
+  <section>
+    <h2>Collegamento alla console</h2>
+    <label for="serverUrl">URL console VEDETTA</label>
+    <input id="serverUrl" placeholder="https://vedetta.azienda.it">
+    <label for="agentKey">Agent Key</label>
+    <input id="agentKey" type="password" placeholder="chiave fornita dalla console">
+    <label for="agentLabel">Etichetta postazione (facoltativa)</label>
+    <input id="agentLabel" placeholder="es. PC-MILANO-014 / reparto amministrazione">
+    <div class="row">
+      <button id="save">Salva e sincronizza</button>
+      <button id="sync" class="ghost">Sincronizza ora</button>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section>
+    <h2>Stato agente</h2>
+    <dl id="stato"></dl>
+    <p class="note">Regole, modalità operativa e piattaforme monitorate sono definite centralmente dalla console e non sono modificabili da questa postazione.</p>
+  </section>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

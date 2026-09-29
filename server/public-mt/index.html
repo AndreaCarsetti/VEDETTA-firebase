@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>VEDETTA — Console SIEM AI</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#101720">
+  <meta name="description" content="Console centrale per il monitoraggio dell'uso delle piattaforme AI aziendali.">
+  <link rel="icon" href="/icons/vedetta-192.png">
+  <link rel="apple-touch-icon" href="/icons/vedetta-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VEDETTA">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #101720;
+      --panel: rgba(28, 38, 54, .09);
+      --panel2: rgba(35, 47, 66, .11);
+      --line: rgba(74, 92, 122, .35);
+      --txt: #eef2f6;
+      --dim: #8b96a8;
+      --acc: #5aba93;
+      --ok: #4fb583;
+      --warn: #e3a13a;
+      --crit: #e5484d;
+      --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+      --font: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --blur: blur(3px) saturate(150%);
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      overscroll-behavior-y: contain;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--txt);
+      font: 13px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
+    }
+
+    #cyber-bg {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      display: block;
+    }
+
+    h1, h2 { font-family: var(--font); }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ---- Gate (accesso) ---- */
+    #gate {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    #gate .mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font: 300 32px/1 'Poppins', var(--mono);
+      letter-spacing: 9px;
+      color: var(--txt);
+    }
+
+    #gate .mark img {
+      height: 30px;
+      width: auto;
+      display: block;
+    }
+
+    #gate .cap {
+      color: var(--dim);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    #gate .box {
+      background: var(--panel);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 22px;
+      width: 100%;
+      max-width: 380px;
+      margin-top: 10px;
+    }
+
+    #gate label {
+      display: block;
+      font-size: 11px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    #gate input {
+      width: 100%;
+      font-family: var(--mono);
+    }
+
+    #gate-err {
+      color: var(--crit);
+      font-size: 12px;
+      min-height: 16px;
+      margin-top: 8px;
+    }
+
+    /* ---- Barre di sistema ---- */
+    .sysbar {
+      padding: 8px 16px;
+      font-size: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #offline-bar {
+      background: #4a3410;
+      color: #f0c070;
+    }
+
+    #update-bar {
+      background: #16352c;
+      color: #a3e6cf;
+    }
+
+    .sysbar button {
+      background: rgba(255, 255, 255, .14);
+      border: 0;
+      color: inherit;
+      border-radius: 5px;
+      padding: 3px 10px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    /* ---- Header / nav ---- */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: calc(10px + var(--safe-t)) 18px 10px;
+      background: var(--panel);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      app-region: drag;
+      -webkit-app-region: drag;
+    }
+
+    header .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font: 400 16px/1 'Poppins', var(--mono);
+      letter-spacing: 3px;
+      color: var(--txt);
+    }
+
+    header .logo img {
+      height: 18px;
+      width: auto;
+      display: block;
+    }
+
+    header .sub {
+      color: var(--dim);
+      font-size: 11px;
+    }
+
+    header .right {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      -webkit-app-region: no-drag;
+    }
+
+    .cfgv {
+      font-family: var(--mono);
+      background: var(--panel2);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      font-size: 11px;
+    }
+
+    .iconbtn {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      color: var(--txt);
+      border-radius: 6px;
+      padding: 5px 11px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .iconbtn:hover {
+      border-color: var(--acc);
+    }
+
+    nav {
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+      padding: 0 12px;
+      background: rgba(20, 27, 38, .88);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      overflow-y: visible;
+      scrollbar-width: none;
+      position: relative;
+    }
+
+    nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    nav button {
+      background: none;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: var(--dim);
+      padding: 11px 15px;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    nav button.active {
+      color: var(--txt);
+      border-bottom-color: var(--acc);
+    }
+
+    .nav-dropdown {
+      position: relative;
+    }
+
+    .nav-dropdown-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-dropdown-btn .caret {
+      font-size: 9px;
+      opacity: .6;
+      transition: transform .15s;
+      transform: translateY(1px);
+    }
+
+    .nav-dropdown.open .nav-dropdown-btn .caret {
+      transform: rotate(180deg) translateY(-1px);
+    }
+
+    .nav-dropdown.has-active .nav-dropdown-btn {
+      color: var(--txt);
+      border-bottom-color: var(--acc);
+    }
+
+    .nav-dropdown-menu {
+      display: none;
+      flex-direction: column;
+      gap: 1px;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 230px;
+      background: rgba(22, 30, 43, .55);
+      backdrop-filter: blur(11px) saturate(150%);
+      -webkit-backdrop-filter: blur(11px) saturate(150%);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px;
+      margin-top: 6px;
+      box-shadow: 0 16px 34px rgba(0,0,0,.45);
+      z-index: 80;
+    }
+
+    .nav-dropdown.open .nav-dropdown-menu {
+      display: flex;
+    }
+
+    .nav-dropdown-menu button {
+      text-align: left;
+      border-radius: 6px;
+      border-bottom: 0;
+      padding: 9px 11px;
+    }
+
+    .nav-dropdown-menu button:hover {
+      background: rgba(90, 186, 147, .14);
+      color: var(--txt);
+    }
+
+    .nav-dropdown-menu button.active {
+      color: var(--acc);
+      background: rgba(90, 186, 147, .1);
+    }
+
+    main {
+      padding: 16px 18px calc(28px + var(--safe-b));
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Card statistiche ---- */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 13px 15px;
+    }
+
+    .card .n {
+      font: 600 25px/1.1 var(--mono);
+    }
+
+    .card .l {
+      color: var(--dim);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-top: 4px;
+    }
+
+    .card.crit .n {
+      color: var(--crit);
+    }
+
+    .card.ok .n {
+      color: var(--ok);
+    }
+
+    #breakdown {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .bd-row {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 11px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .bd-l {
+      color: var(--dim);
+    }
+
+    .bd-n {
+      font-family: var(--mono);
+      color: var(--acc);
+    }
+
+    /* ---- Form ---- */
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    input,
+    select,
+    textarea {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--txt);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 1px solid var(--acc);
+    }
+
+    .btn {
+      background: var(--acc);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn.ghost {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      color: var(--txt);
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+    }
+
+    /* ---- Switches ---- */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--acc);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* ---- Tabelle ---- */
+    .tablewrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      min-width: 820px;
+    }
+
+    th {
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--dim);
+      padding: 9px 12px;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 12px;
+    }
+
+    tr:hover td {
+      background: #1a2338;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .tag.violazione {
+      background: #3d1215;
+      color: #ff8a8e;
+    }
+
+    .tag.accesso {
+      background: #16332b;
+      color: #7fd9b8;
+    }
+
+    .tag.info {
+      background: #132a24;
+      color: #7fd9b8;
+    }
+
+    .tag.sicurezza {
+      background: #2a2312;
+      color: #e6c14f;
+    }
+
+    .tag.rete {
+      background: #1a2338;
+      color: #9db8d1;
+    }
+
+    .dot.warn {
+      background: var(--warn);
+      box-shadow: 0 0 6px var(--warn);
+    }
+
+    .sev-alta {
+      color: var(--crit);
+      font-weight: 700;
+    }
+
+    .sev-media {
+      color: var(--warn);
+    }
+
+    .sev-bassa {
+      color: var(--dim);
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .dot.on {
+      background: var(--ok);
+      box-shadow: 0 0 6px var(--ok);
+    }
+
+    .dot.off {
+      background: #4a5670;
+    }
+
+    textarea.rules {
+      width: 100%;
+      height: 400px;
+      font: 12px/1.5 var(--mono);
+      resize: vertical;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 16px;
+    }
+
+    h3 {
+      margin: 4px 0 10px;
+      font-size: 12px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .note {
+      color: var(--dim);
+      font-size: 12px;
+    }
+
+    /* ---- Modal Modal & Regole ---- */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, .65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal {
+      background: rgba(22, 30, 43, .55);
+      backdrop-filter: blur(11px) saturate(150%);
+      -webkit-backdrop-filter: blur(11px) saturate(150%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 22px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+    }
+
+    .modal h3 {
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 14px;
+      color: var(--txt);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 4px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    .badge-action {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-action.block {
+      background: #3d1215;
+      color: #ff8a8e;
+      border: 1px solid #732225;
+    }
+
+    .badge-action.alert {
+      background: #3d2712;
+      color: #ffd38a;
+      border: 1px solid #734c22;
+    }
+
+    .badge-action.log {
+      background: #142e28;
+      color: #86e0c2;
+      border: 1px solid #2c6353;
+    }
+
+    .rules-toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* ---- Footer ---- */
+    .app-footer {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      padding: 16px 22px calc(16px + var(--safe-b));
+      border-top: 1px solid #1f4d40;
+    }
+    .app-footer .note {
+      flex: 1;
+      min-width: 220px;
+      font-size: 12px;
+    }
+
+    /* ---- Sicurezza ---- */
+    .sec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+    .sec-card {
+      background: rgba(19, 42, 36, .09);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid #1f4d40;
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .sec-card h3 { margin: 0 0 6px; }
+    .sec-card .qr-holder { display: flex; justify-content: center; margin: 10px 0; }
+    .sec-card canvas { background: #fff; border-radius: 10px; padding: 10px; image-rendering: pixelated; max-width: 100%; }
+    .sec-card .kv { background: #142e28; border: 1px solid #2c6353; border-radius: 8px; padding: 10px 12px; }
+    .sec-card .kv .k { font-size: 11px; color: var(--dim); }
+    .sec-card .kv .v { font-size: 12.5px; word-break: break-all; user-select: all; }
+
+    /* ---- EU AI Act cards ---- */
+    .ai-act-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+    .ai-act-card {
+      background: #132a24;
+      border: 1px solid #1f4d40;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .ai-act-card.active {
+      border-color: var(--ok);
+      box-shadow: 0 0 0 1px var(--ok) inset;
+    }
+    .ai-act-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .ai-act-card-title {
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+    .ai-act-art {
+      flex: 0 0 auto;
+      font-size: 11px;
+      background: #142e28;
+      color: #86e0c2;
+      border: 1px solid #2c6353;
+      border-radius: 6px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .ai-act-desc {
+      font-size: 12.5px;
+      color: var(--dim);
+      line-height: 1.45;
+      flex: 1;
+    }
+    .ai-act-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid #1f4d40;
+      padding-top: 10px;
+    }
+
+    /* ---- Platform cards ---- */
+    .platform-card.disabled { opacity: .62; }
+    .platform-domain {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+    .platform-domain input {
+      flex: 1;
+      min-width: 0;
+      font-weight: 600;
+    }
+    .platform-ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #142e28;
+      border: 1px solid #2c6353;
+      font-size: 15px;
+      flex: 0 0 auto;
+    }
+    .platform-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--dim);
+      margin-bottom: 4px;
+    }
+    .platform-field input {
+      width: 100%;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+
+    /* ---- Toggle switch ---- */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex: 0 0 auto;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .switch .slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: #2a5346;
+      border-radius: 22px;
+      transition: background .2s;
+    }
+    .switch .slider::before {
+      content: "";
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .switch input:checked + .slider {
+      background: var(--ok);
+    }
+    .switch input:checked + .slider::before {
+      transform: translateX(18px);
+    }
+
+    #toast {
+      position: fixed;
+      bottom: calc(20px + var(--safe-b));
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ok);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+      z-index: 50;
+      font-size: 13px;
+    }
+
+    #toast.show {
+      opacity: 1;
+    }
+
+    /* ---- Services Grid ---- */
+    .services-section {
+      margin: 16px 0 20px;
+      background: var(--panel);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+    .services-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .services-header h3 {
+      margin: 0;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .service-card {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .service-card:hover {
+      border-color: var(--acc);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .service-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .service-icon {
+      font-size: 22px;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .service-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--txt);
+      line-height: 1.2;
+    }
+    .service-domain {
+      font-size: 11px;
+      color: var(--dim);
+      font-family: ui-monospace, monospace;
+    }
+    .service-body {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 11px;
+    }
+    .service-status {
+      color: var(--ok);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .service-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      background: var(--acc);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .service-btn:hover {
+      opacity: 0.9;
+    }
+
+    @media (max-width:900px) {
+      .grid2 {
+        grid-template-columns: 1fr;
+      }
+
+      header .sub {
+        display: none;
+      }
+
+      main {
+        padding: 14px 12px calc(28px + var(--safe-b));
+      }
+
+      .filters input,
+      .filters select {
+        flex: 1 1 140px;
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <canvas id="cyber-bg" aria-hidden="true"></canvas>
+
+  <!-- ============ GATE ============ -->
+  <div id="gate">
+    <div class="mark"><img src="/icons/tesys-mark.png" alt="">VEDETTA</div>
+    <div class="cap">Vigilanza Endpoint · Dati E Traffico AI<br>Console SIEM</div>
+    <div class="box">
+      <label for="gate-email">Utente / Email</label>
+      <input id="gate-email" type="text" placeholder="admin@vedetta.local" autocomplete="username">
+      <div style="margin-top:10px">
+        <label for="gate-password">Password</label>
+        <input id="gate-password" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="gate-totp-row" style="margin-top:10px">
+        <label for="gate-totp">Codice TOTP Authenticator (2FA)</label>
+        <input id="gate-totp" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+          placeholder="6 cifre" style="letter-spacing:4px;text-align:center;font-size:18px">
+      </div>
+      <div id="gate-err"></div>
+      <button class="btn" id="gate-btn" style="width:100%;margin-top:14px;padding:11px;font-size:14px">Accedi alla Console</button>
+      <a href="/enroll.html" style="display:block;text-align:center;margin-top:12px;color:var(--acc);text-decoration:none;font-size:13px">Configura app authenticator (QR code 2FA)</a>
+    </div>
+    <p class="note" style="max-width:380px;text-align:center">Accesso protetto con autenticazione a due fattori (2FA). La sessione è conservata in sicurezza sul dispositivo.</p>
+  </div>
+
+  <!-- ============ APP ============ -->
+  <div id="shell" class="hidden">
+    <div id="offline-bar" class="sysbar hidden">Modalità offline — visualizzazione degli ultimi dati salvati.</div>
+    <div id="update-bar" class="sysbar hidden">È disponibile una nuova versione della console.
+      <button id="update-reload">Aggiorna</button>
+    </div>
+
+    <header>
+      <span class="logo"><img src="/icons/tesys-mark.png" alt="">VEDETTA</span>
+      <div class="right">
+        <span class="sub mono" id="clock"></span>
+        <button class="iconbtn" id="install">📲 Installa app</button>
+        <button class="iconbtn" id="notify">Attiva notifiche</button>
+        <button class="iconbtn" id="logout">Esci</button>
+      </div>
+    </header>
+
+    <nav>
+      <button data-tab="eventi" class="active">Eventi</button>
+
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-btn" type="button">Sicurezza &amp; Policy <span class="caret">▾</span></button>
+        <div class="nav-dropdown-menu">
+          <button data-tab="regole">Regole &amp; Policy</button>
+          <button data-tab="ai-act">EU AI Act</button>
+          <button data-tab="piattaforme">Piattaforme / DOM</button>
+          <button data-tab="sicurezza">Sicurezza</button>
+          <button data-tab="adblock">🛡️ AdBlock &amp; Tracker</button>
+        </div>
+      </div>
+
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-btn" type="button">Monitoraggio <span class="caret">▾</span></button>
+        <div class="nav-dropdown-menu">
+          <button data-tab="agenti">🖥️ Postazioni</button>
+          <button data-tab="rete">🖧 Rete</button>
+        </div>
+      </div>
+
+      <button data-tab="agenti-chrome">🧩 Agenti</button>
+      <button data-tab="tenants">🏢 Tenants / Clienti</button>
+    </nav>
+
+    <main>
+      <!-- EVENTI -->
+      <div id="tab-eventi">
+        <div class="cards">
+          <div class="card">
+            <div class="n" id="s-eventiOggi">—</div>
+            <div class="l">Eventi oggi</div>
+          </div>
+          <div class="card crit">
+            <div class="n" id="s-violazioniOggi">—</div>
+            <div class="l">Violazioni oggi</div>
+          </div>
+          <div class="card ok">
+            <div class="n" id="s-agentiOnline">—</div>
+            <div class="l">Agenti online</div>
+          </div>
+          <div class="card">
+            <div class="n" id="s-agentiTotali">—</div>
+            <div class="l">Agenti registrati</div>
+          </div>
+          <div class="card">
+            <div class="n" id="s-eventiTotali">—</div>
+            <div class="l">Eventi totali</div>
+          </div>
+        </div>
+        <div id="breakdown"></div>
+
+        <!-- Servizi & Piattaforme AI Protette -->
+        <div class="services-section">
+          <div class="services-header">
+            <h3>🌐 Piattaforme AI Protette &amp; AdBlock VEDETTA</h3>
+            <span class="note" style="font-weight:600;color:var(--ok)">🟢 Protezione SIEM &amp; AdBlocker Attivi</span>
+          </div>
+          <div id="home-services-grid" class="services-grid"></div>
+        </div>
+
+        <div class="filters">
+          <select id="f-categoria">
+            <option value="">Tutte le categorie</option>
+            <option value="violazione">Violazioni</option>
+            <option value="accesso">Accessi</option>
+            <option value="info">Info</option>
+            <option value="rete">Rete</option>
+          </select>
+          <select id="f-severita">
+            <option value="">Tutte le severità</option>
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="bassa">Bassa</option>
+          </select>
+          <input id="f-piattaforma" placeholder="Piattaforma">
+          <input id="f-agent" placeholder="Agente / postazione">
+          <input id="f-cerca" placeholder="Cerca in regole e dettagli">
+          <button class="btn" id="applica">Filtra</button>
+          <button class="btn ghost" id="csv">Esporta CSV</button>
+          <label class="note"><input type="checkbox" id="autorefresh" checked> auto 10s</label>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:140px">Timestamp</th>
+                <th>Agente</th>
+                <th>Categoria</th>
+                <th>Piattaforma</th>
+                <th>Regola</th>
+                <th>Sev.</th>
+                <th>Dettaglio</th>
+              </tr>
+            </thead>
+            <tbody id="eventi-body">
+              <tr>
+                <td colspan="7" class="note">Caricamento…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TENANTS / CLIENTI -->
+      <div id="tab-tenants" class="hidden">
+        <div class="rules-toolbar">
+          <div>
+            <h3 style="margin:0">🏢 Gestione Tenant &amp; Organizzazioni Clienti</h3>
+            <p class="note" style="margin:2px 0 0">Suddividi e gestisci i clienti per Tenant. Ogni organizzazione dispone di una Enroll Key e regole isolate.</p>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <button class="btn" id="btn-add-tenant">+ Genera / Crea Tenant</button>
+            <button class="btn ghost" id="btn-add-user">+ Genera Utente Tenant</button>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <h4 style="margin:0 0 8px">🏢 Organizzazioni Tenant Registrate</h4>
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:70px">Stato</th>
+                  <th>ID Tenant</th>
+                  <th>Nome Organizzazione</th>
+                  <th>Slug ID</th>
+                  <th>Enroll Key / Token</th>
+                  <th>Utenti</th>
+                  <th>Agenti</th>
+                  <th style="width:130px; text-align:right">Gestione</th>
+                </tr>
+              </thead>
+              <tbody id="tenants-table-body">
+                <tr><td colspan="8" style="text-align:center;color:var(--dim);padding:16px">Caricamento tenant in corso…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:24px">
+          <h4 style="margin:0 0 8px">👥 Utenti &amp; Accessi per Tenant</h4>
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:70px">Stato</th>
+                  <th>Utente / Email</th>
+                  <th>Nome</th>
+                  <th>Ruolo</th>
+                  <th>Super Admin</th>
+                  <th>Ultimo Accesso</th>
+                  <th style="width:130px; text-align:right">Gestione</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr><td colspan="7" style="text-align:center;color:var(--dim);padding:16px">Caricamento utenti in corso…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADBLOCK & TRACKING -->
+      <div id="tab-adblock" class="hidden">
+        <div class="rules-toolbar">
+          <div>
+            <h3 style="margin:0">🛡️ Protezione AdBlocker &amp; Anti-Tracker VEDETTA</h3>
+            <p class="note" style="margin:2px 0 0">Configura le opzioni di blocco di adserver, cookie tracker, analytics e script di profilazione per tutti gli agenti Chrome.</p>
+          </div>
+          <div style="margin-left:auto;">
+            <button class="btn" id="btn-save-adblock-config">Salva Configurazione AdBlock</button>
+          </div>
+        </div>
+
+        <div class="sec-grid" style="margin-top:16px">
+          <div class="sec-card">
+            <h3>⚙️ Opzioni di Blocco Contenuti</h3>
+            <p class="note">Seleziona e opziona le categorie di script e domini da bloccare in tempo reale:</p>
+            
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+              <label class="switch-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--panel2);padding:10px 14px;border-radius:8px;border:1px solid var(--line)">
+                <div>
+                  <strong style="display:block;font-size:13px">🛑 Blocco Pubblicità &amp; AdServer</strong>
+                  <span style="font-size:11px;color:var(--dim)">Blocca DoubleClick, Criteo, Taboola, Outbrain, Google Ads...</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ab-opt-ads" checked>
+                  <span class="slider"></span>
+                </label>
+              </label>
+
+              <label class="switch-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--panel2);padding:10px 14px;border-radius:8px;border:1px solid var(--line)">
+                <div>
+                  <strong style="display:block;font-size:13px">📊 Blocco Analytics &amp; Telemetria Web</strong>
+                  <span style="font-size:11px;color:var(--dim)">Blocca Google Analytics, Mixpanel, Segment, Amplitude...</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ab-opt-analytics" checked>
+                  <span class="slider"></span>
+                </label>
+              </label>
+
+              <label class="switch-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--panel2);padding:10px 14px;border-radius:8px;border:1px solid var(--line)">
+                <div>
+                  <strong style="display:block;font-size:13px">🔍 Blocco User Tracking &amp; Mappe di Calore</strong>
+                  <span style="font-size:11px;color:var(--dim)">Blocca Hotjar, Microsoft Clarity, Mouseflow, Session Cam...</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ab-opt-heatmaps" checked>
+                  <span class="slider"></span>
+                </label>
+              </label>
+
+              <label class="switch-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--panel2);padding:10px 14px;border-radius:8px;border:1px solid var(--line)">
+                <div>
+                  <strong style="display:block;font-size:13px">📲 Blocco Social Tracking &amp; Widget Pixels</strong>
+                  <span style="font-size:11px;color:var(--dim)">Blocca Facebook Pixel, Twitter Ads, LinkedIn Insight...</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ab-opt-social" checked>
+                  <span class="slider"></span>
+                </label>
+              </label>
+
+              <label class="switch-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--panel2);padding:10px 14px;border-radius:8px;border:1px solid var(--line)">
+                <div>
+                  <strong style="display:block;font-size:13px">🛡️ Blocco Malware &amp; Phishing (Threat Intel)</strong>
+                  <span style="font-size:11px;color:var(--dim)">Blocca domini malevoli noti (Ransomware, Crypto-miners, Typosquatting)...</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ab-opt-malware" checked>
+                  <span class="slider"></span>
+                </label>
+              </label>
+
+              <label class="switch-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--panel2);padding:10px 14px;border-radius:8px;border:1px solid var(--line)">
+                <div>
+                  <strong style="display:block;font-size:13px">🔞 Blocco Contenuti Inappropriati (Adult/NSFW)</strong>
+                  <span style="font-size:11px;color:var(--dim)">Blocca siti per adulti, gioco d'azzardo e contenuti non lavorativi...</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="ab-opt-nsfw">
+                  <span class="slider"></span>
+                </label>
+              </label>
+            </div>
+          </div>
+
+          <div class="sec-card">
+            <h3>📊 Domini Personalizzati da Bloccare</h3>
+            <p class="note">Aggiungi domini ad-server custom da bloccare (uno per riga):</p>
+            <textarea id="ab-custom-domains" class="rules" style="height:140px;margin-top:10px" placeholder="es. ad.client.com&#10;tracker.analytics.org"></textarea>
+            <div style="margin-top:14px;background:var(--panel2);padding:10px 14px;border-radius:8px;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+              <span>Stato Estensione AdBlocker:</span>
+              <span style="color:var(--ok);font-weight:700">🟢 ATTIVO E DISTRIBUITO</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENTI (centro di configurazione: chiavi + agente unico + estensione Chrome) -->
+      <div id="tab-agenti-chrome" class="hidden">
+
+        <!-- Credenziali, servono per configurare qualunque agente/estensione -->
+        <div class="sec-card" style="margin-bottom:16px">
+          <h3 style="margin:0 0 4px">🔑 Credenziali per collegare agenti ed estensioni</h3>
+          <p class="note" style="margin:0 0 14px">Ti servono per configurare l'agente Python e/o l'estensione Chrome qui sotto. Restano segrete: non condividerle fuori dall'organizzazione.</p>
+          <div style="display:grid;grid-template-columns:1fr;gap:10px;max-width:640px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span style="min-width:110px;font-weight:600">Agent Key</span>
+              <span class="mono" id="agentkey" style="cursor:pointer;background:var(--panel2);padding:4px 10px;border-radius:6px" title="Clicca per copiare">••••••••••••</span>
+              <button class="btn ghost" id="showkey" style="padding:3px 10px">mostra</button>
+              <span class="note" style="width:100%;margin:2px 0 0 120px">Sempre richiesta: eventi di navigazione + telemetria di sistema.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span style="min-width:110px;font-weight:600">Enroll Key</span>
+              <span class="mono" id="enrollkey" style="cursor:pointer;background:var(--panel2);padding:4px 10px;border-radius:6px" title="Clicca per copiare">••••••••••••</span>
+              <button class="btn ghost" id="showenrollkey" style="padding:3px 10px">mostra</button>
+              <span class="note" style="width:100%;margin:2px 0 0 120px">Solo per l'agente Python: serve alla telemetria di sistema (CPU/RAM/disco) su questa console multi-tenant.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agente unico VEDETTA (consigliato) -->
+        <div class="services-section" style="margin-top:0;border:1px solid #7c3aed;background:linear-gradient(90deg,#1a1440,#132a24)">
+          <div class="services-header">
+            <h3>⭐ Agente VEDETTA <span style="font-size:11px;background:#7c3aed;color:#fff;padding:2px 8px;border-radius:10px;vertical-align:middle">CONSIGLIATO — TUTTI I BROWSER + NOC, UN SOLO SCRIPT</span></h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a href="/vedetta-agent.py" download class="btn ghost" style="text-decoration:none;font-size:12px">⬇️ vedetta-agent.py</a>
+              <a href="/vedetta-agent.bat" download class="btn" style="text-decoration:none;font-size:12px">⬇️ vedetta-agent.bat (Windows)</a>
+              <a href="/vedetta-agent-crea-exe.bat" download class="btn" style="text-decoration:none;font-size:12px;background:#7c3aed">⚙️ Crea .exe Windows</a>
+            </div>
+          </div>
+          <p class="note">Un solo programma per ogni postazione: monitora la navigazione su <strong>tutti i browser</strong> (Chrome, Edge, Brave, Firefox, Safari) e invia anche la telemetria di sistema (CPU/RAM/disco) alla scheda <strong>🖥️ Postazioni</strong>.<br>
+          <strong>🖥️ Gira come una vera app</strong>: su Windows, dopo la prima configurazione, appare come icona (triangolo) nella barra in basso a destra vicino all'orologio — niente finestra nera aperta sullo schermo.</p>
+          <ol class="note" style="margin:8px 0 0; padding-left:18px; line-height:1.9">
+            <li>Scarica <code>vedetta-agent.py</code> e <code>vedetta-agent.bat</code> nella <strong>stessa cartella</strong></li>
+            <li>Doppio clic su <code>vedetta-agent.bat</code> (Windows) — su Mac/Linux: <code>python3 vedetta-agent.py</code></li>
+            <li>Al primo avvio incolla <strong>Agent Key</strong> ed <strong>Enroll Key</strong> qui sopra, quando richieste</li>
+          </ol>
+        </div>
+
+        <!-- Estensione Chrome (alternativa) -->
+        <div class="services-section">
+          <div class="services-header">
+            <h3>🧩 Estensione Chrome <span style="font-size:11px;background:var(--panel2);color:var(--dim);padding:2px 8px;border-radius:10px;vertical-align:middle">ALTERNATIVA — SOLO CHROME, BLOCCO ATTIVO DI ADV/TRACKER</span></h3>
+            <a href="/vedetta-extension.zip" download class="btn ghost" style="text-decoration:none;font-size:12px">⬇️ Scarica estensione (.zip)</a>
+          </div>
+          <p class="note">Usala se ti serve anche il <strong>blocco attivo</strong> di pubblicità e tracker dentro Chrome (l'agente Python sopra monitora ma non blocca). Scarica ed estrai lo ZIP, apri <code>chrome://extensions</code>, attiva la <strong>Modalità sviluppatore</strong>, poi <em>Carica estensione non pacchettizzata</em> selezionando la cartella estratta. Usa la stessa <strong>Agent Key</strong> qui sopra.</p>
+        </div>
+
+        <h3 style="margin:22px 0 8px">Estensioni Chrome collegate</h3>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:100px">Stato</th>
+                <th>ID Agente / Postazione</th>
+                <th>Etichetta</th>
+                <th>Versione Estensione</th>
+                <th>Ultimo Heartbeat</th>
+                <th>Eventi Monitored</th>
+              </tr>
+            </thead>
+            <tbody id="t-agenti-chrome">
+              <tr><td colspan="6" style="text-align:center;color:var(--dim);padding:16px">Caricamento agenti Chrome in corso…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- AGENTI -->
+      <div id="tab-agenti" class="hidden">
+        <div class="rules-toolbar" style="margin-bottom: 12px">
+          <div>
+            <h3 style="margin:0">🖥️ Postazioni monitorate (CPU / RAM / disco)</h3>
+            <p class="note" style="margin:2px 0 0">Alimentata dall'Agente VEDETTA — chiavi e download nella scheda <b>🧩 Agenti</b>.</p>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <button class="btn" id="btn-goto-agenti">🧩 Vai a scheda Agenti</button>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34px"></th>
+                <th>Postazione</th>
+                <th>Sistema</th>
+                <th>CPU</th>
+                <th>RAM</th>
+                <th>Disco</th>
+                <th>IP</th>
+                <th>Ultima conn.</th>
+              </tr>
+            </thead>
+            <tbody id="endpoints-body"></tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:12px">Un endpoint è <b>online</b> se ha inviato telemetria negli ultimi 5 minuti. I dati arrivano dall'agente di sistema (NOC) installato sulla postazione.</p>
+      </div>
+
+      <!-- RETE (monitoraggio dispositivi stile Zabbix: ping/TCP agentless) -->
+      <div id="tab-rete" class="hidden">
+        <div class="rules-toolbar" style="margin-bottom:12px">
+          <div>
+            <h3 style="margin:0">🖧 Dispositivi di rete monitorati</h3>
+            <p class="note" style="margin:2px 0 0">Monitoraggio agentless (ping/porta TCP) di router, switch, server, stampanti e altri dispositivi — nessun agente da installare.</p>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <button class="btn" id="btn-add-device">+ Aggiungi dispositivo</button>
+          </div>
+        </div>
+
+        <div class="cards" style="margin-bottom:16px">
+          <div class="card"><div class="k">Dispositivi totali</div><div class="v" id="dev-totali-card">0</div></div>
+          <div class="card"><div class="k">🟢 Online</div><div class="v" id="dev-online-card" style="color:var(--ok)">0</div></div>
+          <div class="card"><div class="k">🔴 Offline</div><div class="v" id="dev-offline-card" style="color:var(--crit)">0</div></div>
+        </div>
+
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34px"></th>
+                <th>Nome</th>
+                <th>Host / IP</th>
+                <th>Tipo</th>
+                <th>Metodo</th>
+                <th>Latenza</th>
+                <th>Uptime</th>
+                <th>Ultimo check</th>
+                <th style="width:150px">Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="devices-body"></tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:12px">Gli allarmi (dispositivo non raggiungibile, latenza oltre soglia) vengono registrati automaticamente nella scheda <b>Eventi</b> con categoria <span class="tag rete">rete</span>.</p>
+      </div>
+
+      <!-- REGOLE -->
+      <div id="tab-regole" class="hidden">
+        <p class="note" style="margin:0 0 10px">Ogni regola qui sotto ha una sua azione (<b>block</b> = blocca davvero, <b>alert</b> = solo registra). L'interruttore "Blocco regole" a destra permette di mettere <b>tutte</b> le regole in modalità test temporaneamente, senza doverle modificare una per una.</p>
+        <div class="rules-toolbar">
+          <button class="btn" id="btn-add-rule">+ Nuova Regola</button>
+          <button class="btn ghost" id="btn-toggle-md">Editor Markdown (Avanzato)</button>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <label style="font-size:12px; color:var(--dim)" title="Le regole con azione 'block' bloccano sempre per davvero, tranne in Modalità Test">Blocco regole:
+              <select id="mode" style="margin-left:4px">
+                <option value="enforce">✅ Attivo (le regole "block" bloccano davvero)</option>
+                <option value="test">🧪 Test (nessun blocco reale, solo registra)</option>
+              </select>
+            </label>
+            <label style="font-size:12px; color:var(--dim)">Polling:
+              <input id="pollMinutes" type="number" min="1" style="width:55px;margin-left:4px" value="5"> min
+            </label>
+            <button class="btn" id="pubblica">Pubblica configurazione</button>
+          </div>
+        </div>
+
+        <div class="tablewrap" style="margin-bottom:16px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:65px">ID</th>
+                <th>Nome Regola</th>
+                <th style="width:110px">Tipo</th>
+                <th style="width:150px">Azione Client</th>
+                <th style="width:90px">Severità</th>
+                <th>Criterio / Dettaglio</th>
+                <th style="width:130px; text-align:right">Gestione</th>
+              </tr>
+            </thead>
+            <tbody id="rules-table-body">
+              <tr>
+                <td colspan="7" class="note">Nessuna regola configurata.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="markdown-editor-container" class="hidden">
+          <h3>Codice Markdown (sincronizzato automaticamente)</h3>
+          <textarea id="rulesMd" class="rules" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <!-- EU AI ACT -->
+      <div id="tab-ai-act" class="hidden">
+        <div class="rules-toolbar">
+          <div>
+            <h3 style="margin:0">Framework EU AI Act — Regolamento UE 2024/1689</h3>
+            <p class="note" style="margin:2px 0 0">Attiva le regole predefinite di conformità. Confluiscono nell'elenco regole e vengono distribuite agli agenti alla pubblicazione. <span id="aia-status-summary"></span></p>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn ghost" id="btn-aia-disable-all">Disattiva tutte</button>
+            <button class="btn ghost" id="btn-aia-enable-all">Attiva tutte</button>
+            <button class="btn" id="pubblica3">Pubblica configurazione</button>
+          </div>
+        </div>
+        <div id="ai-act-cards-container" class="ai-act-grid"></div>
+      </div>
+
+      <!-- PIATTAFORME -->
+      <div id="tab-piattaforme" class="hidden">
+        <div class="rules-toolbar">
+          <button class="btn" id="btn-add-platform">+ Aggiungi piattaforma</button>
+          <button class="btn ghost" id="btn-toggle-platforms-json">Editor JSON (Avanzato)</button>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <span id="platforms-status-summary" class="note" style="font-weight:600"></span>
+            <button class="btn" id="pubblica2">Pubblica configurazione</button>
+          </div>
+        </div>
+        <p class="note" style="margin-top:0">Quando un sito AI cambia interfaccia, aggiorna qui il <strong>selettore del campo prompt</strong>: gli agenti lo ricevono al prossimo polling. Sospendi un dominio con l'interruttore, oppure aggiungine uno nuovo per attivarne il monitoraggio.</p>
+
+        <div id="platforms-cards-container" class="ai-act-grid"></div>
+
+        <div id="platforms-json-container" class="hidden" style="margin-top:16px">
+          <h3>Codice JSON (sincronizzato automaticamente)</h3>
+          <textarea id="platforms" class="rules" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <!-- SICUREZZA -->
+      <div id="tab-sicurezza" class="hidden">
+        <div class="sec-grid">
+          <div class="sec-card">
+            <h3>Cambia password</h3>
+            <p class="note">La password per l'accesso alla console. Minimo 6 caratteri.</p>
+            <div class="form-group"><label for="pw-current">Password attuale</label><input id="pw-current" type="password" autocomplete="current-password"></div>
+            <div class="form-group"><label for="pw-next">Nuova password</label><input id="pw-next" type="password" autocomplete="new-password"></div>
+            <div class="form-group"><label for="pw-confirm">Conferma nuova password</label><input id="pw-confirm" type="password" autocomplete="new-password"></div>
+            <button class="btn" id="pw-save">Aggiorna password</button>
+          </div>
+
+          <div class="sec-card">
+            <h3>App authenticator (2FA)</h3>
+            <p class="note">Scansiona il QR con Google/Microsoft Authenticator, Authy, ecc. In alternativa inserisci il secret a mano.</p>
+            <div class="qr-holder"><canvas id="sec-qr" width="220" height="220"></canvas></div>
+            <div class="kv"><div class="k">Secret (inserimento manuale)</div><div class="v mono" id="sec-secret">—</div></div>
+            <p class="note" style="margin-top:10px"><a href="/enroll.html" target="_blank" style="color:var(--acc);text-decoration:none">Apri pagina QR a schermo intero →</a></p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer style="text-align:center; color:var(--dim); font-size:12px; padding:18px 16px calc(20px + var(--safe-b)); border-top:1px solid var(--line); margin-top:8px;">
+      Soluzione pensata e realizzata da <strong style="color:var(--txt)">Tesys Spa</strong>
+      <br><span style="opacity:.75">VEDETTA V0.1</span>
+    </footer>
+    </div>
+
+  <!-- ============ MODAL NUOVA / MODIFICA REGOLA ============ -->
+  <div id="rule-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="modal-title">Nuova Regola di Sicurezza</h3>
+      <form id="rule-form" onsubmit="return false;">
+        <input type="hidden" id="rule-edit-index" value="-1">
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 90px;">
+            <label for="m-id">ID Regola</label>
+            <input id="m-id" placeholder="es. R01" required>
+          </div>
+          <div class="form-group">
+            <label for="m-name">Nome Regola</label>
+            <input id="m-name" placeholder="es. Divieto invio IBAN" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="m-tipo">Tipo controllo</label>
+            <select id="m-tipo">
+              <option value="keyword">Keyword (Parole chiave)</option>
+              <option value="file_upload">Upload File (Estensioni)</option>
+              <option value="regex">Regex (Pattern)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="m-azione">Azione Client</label>
+            <select id="m-azione">
+              <option value="block">🛑 Block — Blocca l'invio e notifica</option>
+              <option value="alert">⚠️ Alert — Allerta il client (senza bloccare)</option>
+              <option value="log">📝 Log — Solo registro SIEM</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="m-severita">Severità</label>
+            <select id="m-severita">
+              <option value="alta">🔴 Alta</option>
+              <option value="media" selected>🟠 Media</option>
+              <option value="bassa">⚪ Bassa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label id="m-val-label" for="m-valore">Parole chiave (separate da virgola)</label>
+          <input id="m-valore" placeholder="es. iban, password, segreto, riservato" required>
+        </div>
+
+        <div class="form-group">
+          <label for="m-desc">Descrizione / Note</label>
+          <textarea id="m-desc" rows="2" placeholder="Spiegazione della regola..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" id="m-cancel" type="button">Annulla</button>
+          <button class="btn" id="m-save" type="submit">Salva Regola</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script src="/cyber-bg.js?v=20260910a"></script>
+  <script src="/qrcode.js"></script>
+  <script src="/rules-parser.js"></script>
+  <script src="/app.js"></script>
+  <!-- ============ MODAL CREA TENANT ============ -->
+  <div id="tenant-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>🏢 Genera / Crea Nuovo Tenant Client</h3>
+      <form id="tenant-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="mt-name">Nome Organizzazione / Cliente</label>
+          <input id="mt-name" placeholder="es. Acme Corp S.p.A." required>
+        </div>
+        <div class="form-group">
+          <label for="mt-slug">Slug ID Identificatore</label>
+          <input id="mt-slug" placeholder="es. acme-corp" required>
+        </div>
+        <div class="form-group">
+          <label for="mt-email">Email Admin / Owner Organizzazione</label>
+          <input id="mt-email" type="email" placeholder="es. admin@acmecorp.com">
+        </div>
+        <div class="form-group">
+          <label for="mt-pw">Password Iniziale Admin</label>
+          <input id="mt-pw" type="password" placeholder="es. Password di almeno 12 caratteri">
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="mt-cancel" type="button">Annulla</button>
+          <button class="btn" id="mt-save" type="submit">Genera Tenant</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL CREA UTENTE TENANT ============ -->
+  <div id="user-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>👥 Genera Nuovo Utente per Tenant</h3>
+      <form id="user-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="mu-email">Email Utente</label>
+          <input id="mu-email" type="email" placeholder="es. m.rossi@acmecorp.com" required>
+        </div>
+        <div class="form-group">
+          <label for="mu-tenant">Tenant di appartenenza (Opzionale)</label>
+          <select id="mu-tenant">
+            <option value="">-- Seleziona Tenant --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="mu-name">Nome e Cognome</label>
+          <input id="mu-name" placeholder="es. Mario Rossi" required>
+        </div>
+        <div class="form-group">
+          <label for="mu-role">Ruolo Accesso</label>
+          <select id="mu-role">
+            <option value="admin">Admin (Gestione completa)</option>
+            <option value="operator">Operator (Gestione regole ed eventi)</option>
+            <option value="viewer">Viewer (Sola lettura SIEM)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="mu-pw">Password Iniziale</label>
+          <input id="mu-pw" type="password" placeholder="Minimo 6 caratteri" required>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="mu-cancel" type="button">Annulla</button>
+          <button class="btn" id="mu-save" type="submit">Genera Utente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL AGGIUNGI/MODIFICA DISPOSITIVO DI RETE ============ -->
+  <div id="device-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="device-modal-title">🖧 Aggiungi dispositivo di rete</h3>
+      <form id="device-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="dv-name">Nome dispositivo</label>
+          <input id="dv-name" placeholder="es. Router sala server" required>
+        </div>
+        <div class="form-group">
+          <label for="dv-host">Indirizzo IP / hostname</label>
+          <input id="dv-host" placeholder="es. 192.168.1.1" required>
+        </div>
+        <div class="form-group">
+          <label for="dv-type">Tipo dispositivo</label>
+          <select id="dv-type">
+            <option value="router">Router</option>
+            <option value="switch">Switch</option>
+            <option value="server">Server</option>
+            <option value="printer">Stampante</option>
+            <option value="nas">NAS</option>
+            <option value="camera">Telecamera</option>
+            <option value="altro" selected>Altro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dv-method">Metodo di check</label>
+          <select id="dv-method">
+            <option value="ping" selected>Ping (ICMP)</option>
+            <option value="tcp">Porta TCP</option>
+          </select>
+        </div>
+        <div class="form-group" id="dv-port-group" style="display:none">
+          <label for="dv-port">Porta TCP</label>
+          <input id="dv-port" type="number" min="1" max="65535" placeholder="es. 80, 443, 22, 9100">
+        </div>
+        <div class="form-group">
+          <label for="dv-interval">Intervallo di controllo (secondi)</label>
+          <input id="dv-interval" type="number" min="15" value="60">
+        </div>
+        <div class="form-group">
+          <label for="dv-warn">Soglia latenza avviso (ms)</label>
+          <input id="dv-warn" type="number" min="1" value="150">
+        </div>
+        <div class="form-group">
+          <label for="dv-crit">Soglia latenza critica (ms)</label>
+          <input id="dv-crit" type="number" min="1" value="400">
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="dv-cancel" type="button">Annulla</button>
+          <button class="btn" id="dv-save" type="submit">Salva dispositivo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+
+</html>
